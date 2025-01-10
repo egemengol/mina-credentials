@@ -93,6 +93,9 @@ const DynamicSHA2 = {
 
   padding256,
   padding512,
+
+  finalizeOnly,
+  validate,
 };
 
 function sha2(len: 224 | 256 | 384 | 512, bytes: DynamicArray<UInt8>): Bytes {
@@ -160,7 +163,7 @@ function padding256(
   message: DynamicArray<UInt8>
 ): DynamicArray<StaticArray<UInt32>, bigint[]> {
   /* padded message looks like this:
-  
+
   M ... M 0x80 0x0 ... 0x0 L L L L L L L L
 
   where
@@ -173,7 +176,7 @@ function padding256(
   Corollaries:
   - the entire L section is always contained at the end of the last block
   - the 0x80 byte might be in the last block or the one before that
-  - max number of blocks = ceil((M.maxLength + 9) / 64) 
+  - max number of blocks = ceil((M.maxLength + 9) / 64)
   - number of actual blocks = ceil((M.length + 9) / 64) = floor((M.length + 9 + 63) / 64) = floor((M.length + 8) / 64) + 1
   - block number of L section = floor((M.length + 8) / 64)
   - block number of 0x80 byte index = floor(M.length / 64)
@@ -236,7 +239,7 @@ function padding512(
   message: DynamicArray<UInt8>
 ): DynamicArray<StaticArray<UInt64>> {
   /* padded message looks like this:
-  
+
   M ... M 0x80 0x0 ... 0x0 [...L[16]]
 
   where
@@ -249,7 +252,7 @@ function padding512(
   Corollaries:
   - the entire L section is always contained at the end of the last block
   - the 0x80 byte might be in the last block or the one before that
-  - max number of blocks = ceil((M.maxLength + 17) / 128) 
+  - max number of blocks = ceil((M.maxLength + 17) / 128)
   - number of actual blocks = ceil((M.length + 17) / 128) = floor((M.length + 17 + 127) / 128) = floor((M.length + 16) / 128) + 1
   - block number of L section = floor((M.length + 16) / 128)
   - block number of 0x80 byte index = floor(M.length / 128)
@@ -448,6 +451,59 @@ function finalize(
     // finalize hash
     let result = state.array.flatMap((x) => uint64ToBytesBE(x));
     return iterState.len === 384 ? Bytes48.from(result) : Bytes64.from(result);
+  }
+}
+
+function finalizeOnly<L extends Length>(
+  iterState: Sha2IterationState<L>,
+  final: Sha2FinalIteration
+): Sha2IterationState<L>;
+
+function finalizeOnly(
+  iterState: Sha2IterationState,
+  final: Sha2FinalIteration
+): Sha2IterationState {
+  if (iterState.len === 224 || iterState.len === 256) {
+    assert(final.type === 256, 'incompatible types');
+
+    let { state, commitment } = iterState;
+    state = final.blocks.reduce(State32, state, processBlock256);
+    commitment = final.blocks.reduce(Field, commitment, commitBlock256);
+
+    return { len: iterState.len, commitment, state };
+  } else {
+    assert(iterState.len === 384 || iterState.len === 512, 'invalid state');
+    assert(final.type === 512, 'incompatible types');
+
+    let { state, commitment } = iterState;
+    state = final.blocks.reduce(State64, state, processBlock512);
+    commitment = final.blocks.reduce(Field, commitment, commitBlock512);
+
+    return { len: iterState.len, commitment, state };
+  }
+}
+
+function validate(
+  type: 224 | 256 | 384 | 512,
+  result: Sha2IterationState,
+  payload: DynamicArray<UInt8>
+) {
+  if (type === 224 || type === 256) {
+    let expected = padding256(payload).reduce(Field, Field(0), commitBlock256);
+    result.commitment.assertEquals(expected, 'invalid commitment');
+
+    // Convert state to bytes for validation if needed
+    let state = type === 224 ? result.state.slice(0, 7) : result.state;
+    let bytes = state.array.flatMap((x) => x.toBytesBE());
+    return type === 224 ? Bytes28.from(bytes) : Bytes32.from(bytes);
+  } else {
+    let expected = padding512(payload).reduce(Field, Field(0), commitBlock512);
+    result.commitment.assertEquals(expected, 'invalid commitment');
+
+    // Convert state to bytes for validation if needed
+    let state = type === 384 ? result.state.slice(0, 6) : result.state;
+    let bytes = state.array.flatMap((x) => uint64ToBytesBE(x));
+    return type === 384 ? Bytes48.from(bytes) : Bytes64.from(bytes);
   }
 }
 

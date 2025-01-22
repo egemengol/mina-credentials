@@ -104,12 +104,14 @@ console.timeEnd('Compile sha2Validate');
 let [first, ...rest] = iterations;
 
 console.time('Proof (initial)');
+// @ts-ignore
 let { proof } = await sha2Update.initial(first);
 console.timeEnd('Proof (initial)');
 
 for (let index = 0; index < rest.length; index++) {
   const iteration = rest[index];
   console.time(`Proof (recursive step ${index + 1})`);
+  // @ts-ignore
   ({ proof } = await sha2Update.recursive(proof, iteration));
   console.timeEnd(`Proof (recursive step ${index + 1})`);
 }

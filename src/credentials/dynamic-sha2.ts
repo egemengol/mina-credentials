@@ -494,6 +494,7 @@ function validate(
 
     // Convert state to bytes for validation if needed
     let state = type === 224 ? result.state.slice(0, 7) : result.state;
+    // @ts-ignore
     let bytes = state.array.flatMap((x) => x.toBytesBE());
     return type === 224 ? Bytes28.from(bytes) : Bytes32.from(bytes);
   } else {
@@ -502,6 +503,7 @@ function validate(
 
     // Convert state to bytes for validation if needed
     let state = type === 384 ? result.state.slice(0, 6) : result.state;
+    // @ts-ignore
     let bytes = state.array.flatMap((x) => uint64ToBytesBE(x));
     return type === 384 ? Bytes48.from(bytes) : Bytes64.from(bytes);
   }

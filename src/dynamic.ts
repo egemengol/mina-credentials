@@ -14,3 +14,4 @@ export {
   hashDynamicWithPrefix,
 } from './credentials/dynamic-hash.ts';
 export { Schema } from './credentials/schema.ts';
+export { SHA2 } from './credentials/sha2.ts';

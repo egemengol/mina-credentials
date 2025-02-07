@@ -304,12 +304,6 @@ class DynamicArrayBase<T = any, V = any> {
    * Avoids hash collisions by encoding the number of actual elements at the beginning of the hash input.
    */
   hash() {
-    let state = Poseidon.initialState();
-    const digest = this.hashUpdate(state);
-    return digest[0];
-  }
-
-  hashUpdate(hashState: [Field, Field, Field]): [Field, Field, Field] {
     let type = ProvableType.get(this.innerType);
 
     // pack all elements into a single field element
@@ -363,18 +357,14 @@ class DynamicArrayBase<T = any, V = any> {
     // now hash the 2-field elements blocks, one permutation at a time
     // note: there's a padding element included at the end in the case of uneven number of blocks
     // however, this doesn't cause hash collisions because we encoded the length at the beginning
-    let state: [Field, Field, Field] = [
-      hashState[0],
-      hashState[1],
-      hashState[2],
-    ];
+    let state = Poseidon.initialState();
     dynBlocks.forEach((block, isPadding) => {
-      let newState = Poseidon.update(hashState, block.array);
-      state[0] = Provable.if(isPadding, hashState[0], newState[0]);
-      state[1] = Provable.if(isPadding, hashState[1], newState[1]);
-      state[2] = Provable.if(isPadding, hashState[2], newState[2]);
+      let newState = Poseidon.update(state, block.array);
+      state[0] = Provable.if(isPadding, state[0], newState[0]);
+      state[1] = Provable.if(isPadding, state[1], newState[1]);
+      state[2] = Provable.if(isPadding, state[2], newState[2]);
     });
-    return state;
+    return state[0];
   }
 
   /**

@@ -15,6 +15,7 @@ export { DynamicBytes } from './credentials/dynamic-bytes.ts';
 export { DynamicString } from './credentials/dynamic-string.ts';
 export { DynamicRecord } from './credentials/dynamic-record.ts';
 export { DynamicSHA2 } from './credentials/dynamic-sha2.ts';
+export { SHA2 } from './credentials/sha2.ts';
 export { hashPacked } from './o1js-missing.ts';
 export {
   hashDynamic,

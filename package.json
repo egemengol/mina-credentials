@@ -1,6 +1,6 @@
 {
   "name": "@egemengol/mina-credentials",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "workspaces": [
     "examples/web-demo",
     "examples/web-demo/api-server"
